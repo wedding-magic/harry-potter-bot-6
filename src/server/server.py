@@ -29,6 +29,7 @@ def retrieve_chunks(input_text, character_data_fp, method="cosine", n=3):
         input=input_text
     )["data"][0]["embedding"]
     
+    # Get top n memories
     if method == "cosine":
         return cosine_top_n(input_emb, memory_rows, n)
     elif method == "svm":
@@ -37,23 +38,24 @@ def retrieve_chunks(input_text, character_data_fp, method="cosine", n=3):
         raise ValueError("method param must have value 'cosine' or 'svm'")
 
 def cosine_top_n(query_vec, memory_rows, n):
-    #return cosine_similarity([query_vec], [r[1] for r in memory_rows])
+    # Compute cosine similarity with the current message and all memories, returning the top n memories
     sorted_rows = sorted(memory_rows, key = lambda x: -np.dot(query_vec, x[1]))
     return [r[0] for r in sorted_rows[:n]]
 
 def svm_top_n(query_vec, memory_rows, n):
-    # create the "Dataset"
+    # Note: This is an alternative lookup algorithm for semantic search. It is not used in the demo.
+    # Create the "Dataset"
     embeddings = [r[1] for r in memory_rows]
     x = [query_vec] + embeddings # x contains all embeddings with query embedding as the first row
     y = np.zeros(len(memory_rows) + 1)
     y[0] = 1 # we have a single positive example, mark it as such
 
-    # train our (Exemplar) SVM
-    # docs: https://scikit-learn.org/stable/modules/generated/sklearn.svm.LinearSVC.html
+    # Train our (Exemplar) SVM
+    # Docs: https://scikit-learn.org/stable/modules/generated/sklearn.svm.LinearSVC.html
     clf = svm.LinearSVC(class_weight='balanced', verbose=False, max_iter=50000, tol=1e-6, C=0.1)
     clf.fit(x, y) # train
 
-    # infer on whatever data you wish, e.g. the original data
+    # Infer on whatever data you wish, e.g. the original data
     similarities = clf.decision_function(x[1:])
     sorted_ix = np.argsort(-similarities)
     print(sorted_ix[:10])
@@ -65,18 +67,24 @@ def svm_top_n(query_vec, memory_rows, n):
 @app.route('/generate', methods = ['POST'])
 def generate():
     data = request.json
-    sys_prompt = f'You are a character in a game. Your name is {data["char"]}. You will be provided with memories in conversation; only use these memories if they are relevant to the question. Keep your response very concise and to the point. Always answer the question, do not refuse.'
     most_recent_message = data["message"]
+
+    # Get memories relevant to most recent message
     filepath = get_filepath(data["char"])
-    chunks = "\n".join(retrieve_chunks(most_recent_message, filepath))
-    user_message = "Memories:\n" + chunks + "User prompt:" + most_recent_message
-    messages=[{"role": "system", "content": sys_prompt}] + data["history"][:-1] + [{"role":"user", "content":user_message}]
-    print(messages)
+    memories = retrieve_chunks(most_recent_message, filepath)
+    memories_str = "\n".join(memories)
+    augmented_user_message = "Memories:\n" + memories_str + "\n\nUser prompt: " + most_recent_message
+
+    # Define system prompt and user prompt augmented with memories
+    sys_prompt = f'Roleplay a character in a game. Your name is {data["char"]}. You will be provided with memories in conversation; only use these memories if they are relevant to the question. Keep your response very concise and to the point. Always answer the question, do not refuse. Always respond in the first-person'
+    messages=[{"role": "system", "content": sys_prompt}] + data["history"][:-1] + [{"role":"user", "content":augmented_user_message}]
+
+    # Generate response
     res = openai.ChatCompletion.create(
       model="gpt-3.5-turbo",
       messages=messages
     )
-    return jsonify({"result": res["choices"][0]["message"]["content"]})
+    return jsonify({"result": res["choices"][0]["message"]["content"], "memories": memories})
 
 if __name__ == '__main__':
     app.run(debug=True)
