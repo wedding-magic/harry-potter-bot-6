@@ -104,7 +104,7 @@ export default function App() {
             Harry Potter Bot Demo
         </h1>
         <p className="about">{`Demo version of chatbot app for conversing with and asking questions of AI characters 
-        with external memories supplied by semantic search on a vector database. Amara Nightengale
+        with external memories supplied by semantic search on a vector database. Amara Nightingale
         is a made up character in the harry potter universe with memories created by chatGPT, and Ron Weasley
         has memories scraped from `}<a href="https://harrypotter.fandom.com/wiki/Ronald_Weasley">harry potter wiki.</a>
         {' Could be extended to create videogame NPC\'s with dynamically added memories.'}</p>

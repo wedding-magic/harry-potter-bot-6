@@ -12,7 +12,7 @@ export default function CharSelect(props){
       <div className="radioButtons">
         <RadioGroup onChange={ props.handleCharChange } value= {props.char} horizontal >
           <ReversedRadioButton value="Amara" pointColor="#87B9E1" rootColor="#C0C0C0">
-            {'Amara Nightengale'}
+            {'Amara Nightingale'}
           </ReversedRadioButton>
           <ReversedRadioButton value="Ron" pointColor="#87B9E1" rootColor="#C0C0C0">
             {'Ron Weasley'}
