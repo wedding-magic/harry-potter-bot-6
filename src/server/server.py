@@ -18,7 +18,7 @@ def get_filepath(char):
 
 app = Flask(__name__)
 
-def retrieve_chunks(input_text, character_data_fp, method="cosine", n=3):  
+def retrieve_memories(input_text, character_data_fp, method="cosine", n=3):  
     # Load memory rows
     with open(character_data_fp, 'r') as f:
         memory_rows = json.load(f)
@@ -71,7 +71,7 @@ def generate():
 
     # Get memories relevant to most recent message
     filepath = get_filepath(data["char"])
-    memories = retrieve_chunks(most_recent_message, filepath)
+    memories = retrieve_memories(most_recent_message, filepath)
     memories_str = "\n".join(memories)
     augmented_user_message = "Memories:\n" + memories_str + "\n\nUser prompt: " + most_recent_message
 
